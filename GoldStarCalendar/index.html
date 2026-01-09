@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoldStart Calendar</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+
+        header {
+            padding: 1rem;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #calendar-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .calendar-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ddd;
+            border: 1px solid #ddd;
+        }
+
+        .week-row {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            background-color: #fff;
+        }
+
+        .header-row {
+            position: sticky;
+            top: 0;
+            background-color: #eee;
+            font-weight: bold;
+            z-index: 5;
+        }
+
+        .cell {
+            padding: 0.5rem;
+            border: 1px solid #eee;
+            text-align: center;
+            min-height: 3rem;
+        }
+
+        .week-label {
+            font-size: 0.8rem;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fafafa;
+        }
+
+        .day-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .day-number {
+            font-size: 1.1rem;
+        }
+
+        .month-name {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .current-day {
+            background-color: #e7f3ff;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .current-week {
+            outline: 2px solid #007bff;
+            z-index: 2;
+        }
+
+        button, select {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="controls">
+        <label for="year-picker">Year:</label>
+        <select id="year-picker"></select>
+        <button id="this-week-btn">This Week</button>
+    </div>
+</header>
+
+<div id="calendar-container">
+    <div class="calendar-grid" id="calendar-grid">
+        <!-- Header Row -->
+        <div class="week-row header-row">
+            <div class="cell week-label">Week</div>
+            <div class="cell">Sun</div>
+            <div class="cell">Mon</div>
+            <div class="cell">Tue</div>
+            <div class="cell">Wed</div>
+            <div class="cell">Thu</div>
+            <div class="cell">Fri</div>
+            <div class="cell">Sat</div>
+        </div>
+        <div id="weeks-body"></div>
+    </div>
+</div>
+
+<script>
+    const yearPicker = document.getElementById('year-picker');
+    const thisWeekBtn = document.getElementById('this-week-btn');
+    const weeksBody = document.getElementById('weeks-body');
+    const calendarContainer = document.getElementById('calendar-container');
+
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    // Initialize year picker
+    for (let i = currentYear - 10; i <= currentYear + 10; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = i;
+        if (i === currentYear) option.selected = true;
+        yearPicker.appendChild(option);
+    }
+
+    function renderCalendar(year) {
+        weeksBody.innerHTML = '';
+        
+        // Find the first Sunday of the year (or the Sunday before Jan 1st)
+        let date = new Date(year, 0, 1);
+        const dayOfWeek = date.getDay();
+        date.setDate(date.getDate() - dayOfWeek);
+
+        for (let w = 0; w < 52; w++) {
+            const row = document.createElement('div');
+            row.className = 'week-row';
+            
+            // Week label (using the date of the Sunday)
+            const weekLabel = document.createElement('div');
+            weekLabel.className = 'cell week-label';
+            weekLabel.textContent = `W${w + 1}`;
+            row.appendChild(weekLabel);
+
+            let isCurrentWeek = false;
+
+            for (let d = 0; d < 7; d++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'cell day-cell';
+                
+                const dayNum = date.getDate();
+                const month = date.toLocaleString('default', { month: 'short' });
+                
+                const dayNumberSpan = document.createElement('span');
+                dayNumberSpan.className = 'day-number';
+                dayNumberSpan.textContent = dayNum;
+                
+                dayCell.appendChild(dayNumberSpan);
+
+                // Show month name if it's the 1st of the month or the first day of the week
+                if (dayNum === 1 || d === 0) {
+                    const monthSpan = document.createElement('span');
+                    monthSpan.className = 'month-name';
+                    monthSpan.textContent = month;
+                    dayCell.appendChild(monthSpan);
+                }
+
+                // Highlight today
+                if (date.toDateString() === today.toDateString()) {
+                    dayCell.classList.add('current-day');
+                    isCurrentWeek = true;
+                }
+
+                row.appendChild(dayCell);
+                
+                // Move to next day
+                date.setDate(date.getDate() + 1);
+            }
+
+            if (isCurrentWeek) {
+                row.classList.add('current-week');
+                row.id = 'current-week-row';
+            }
+
+            weeksBody.appendChild(row);
+        }
+    }
+
+    function scrollToCurrentWeek() {
+        const currentYearSelected = parseInt(yearPicker.value);
+        if (currentYearSelected !== currentYear) {
+            yearPicker.value = currentYear;
+            renderCalendar(currentYear);
+        }
+        
+        const currentWeekRow = document.getElementById('current-week-row');
+        if (currentWeekRow) {
+            currentWeekRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    yearPicker.addEventListener('change', (e) => {
+        renderCalendar(parseInt(e.target.value));
+    });
+
+    thisWeekBtn.addEventListener('click', scrollToCurrentWeek);
+
+    // Initial render
+    renderCalendar(currentYear);
+    
+    // Scroll to current week on load
+    setTimeout(scrollToCurrentWeek, 100);
+
+</script>
+
+</body>
+</html>
