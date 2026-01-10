@@ -204,6 +204,28 @@
         .btn-secondary:hover {
             background-color: #5a6268;
         }
+
+        /* Star list in modal */
+        .star-list-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .star-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .star-list-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .star-list-name {
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
@@ -331,6 +353,30 @@
                 dayCell.onclick = () => {
                     modalDate.textContent = currentDate.toDateString();
                     modalBody.innerHTML = '';
+
+                    const stars = JSON.parse(localStorage.getItem('calendar-stars') || '[]');
+                    if (stars.length === 0) {
+                        modalBody.innerHTML = '<p style="color: #666;">No stars created yet. Use "+ New Star" to create some!</p>';
+                    } else {
+                        stars.forEach(star => {
+                            const starItem = document.createElement('div');
+                            starItem.className = 'star-list-item';
+
+                            const icon = document.createElement('span');
+                            icon.className = 'star-list-icon';
+                            icon.textContent = '★';
+                            icon.style.color = star.color;
+
+                            const name = document.createElement('span');
+                            name.className = 'star-list-name';
+                            name.textContent = star.name;
+
+                            starItem.appendChild(icon);
+                            starItem.appendChild(name);
+                            modalBody.appendChild(starItem);
+                        });
+                    }
+
                     dayModal.style.display = 'block';
                 };
 
@@ -399,7 +445,18 @@
         e.preventDefault();
         const starName = document.getElementById('star-name').value;
         const starColor = document.getElementById('star-color').value;
-        console.log('New Star:', { starName, starColor });
+        
+        const newStar = {
+            id: Date.now(),
+            name: starName,
+            color: starColor
+        };
+
+        const stars = JSON.parse(localStorage.getItem('calendar-stars') || '[]');
+        stars.push(newStar);
+        localStorage.setItem('calendar-stars', JSON.stringify(stars));
+
+        console.log('New Star saved:', newStar);
         closeStarModalFunc();
     };
 
