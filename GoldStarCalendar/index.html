@@ -171,6 +171,39 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        /* Form styles */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
@@ -180,6 +213,7 @@
         <label for="year-picker">Year:</label>
         <select id="year-picker"></select>
         <button id="this-week-btn">This Week</button>
+        <button id="add-star-btn">+ New Star</button>
     </div>
 </header>
 
@@ -210,15 +244,43 @@
     </div>
 </div>
 
+<div id="star-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="close-star-modal">&times;</span>
+        <h2>Add New Star</h2>
+        <form id="star-form">
+            <div class="form-group">
+                <label for="star-name">Star Name:</label>
+                <input type="text" id="star-name" required>
+            </div>
+            <div class="form-group">
+                <label for="star-color">Star Color:</label>
+                <input type="color" id="star-color" value="#ffcc00">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-star">Cancel</button>
+                <button type="submit">Save Star</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     const yearPicker = document.getElementById('year-picker');
     const thisWeekBtn = document.getElementById('this-week-btn');
+    const addStarBtn = document.getElementById('add-star-btn');
     const weeksBody = document.getElementById('weeks-body');
     const calendarContainer = document.getElementById('calendar-container');
+    
     const dayModal = document.getElementById('day-modal');
     const closeModal = document.getElementById('close-modal');
     const modalDate = document.getElementById('modal-date');
     const modalBody = document.getElementById('modal-body');
+
+    const starModal = document.getElementById('star-modal');
+    const closeStarModal = document.getElementById('close-star-modal');
+    const cancelStarBtn = document.getElementById('cancel-star');
+    const starForm = document.getElementById('star-form');
 
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -320,6 +382,27 @@
 
     thisWeekBtn.addEventListener('click', scrollToCurrentWeek);
 
+    // Star modal logic
+    addStarBtn.onclick = () => {
+        starModal.style.display = 'block';
+    };
+
+    const closeStarModalFunc = () => {
+        starModal.style.display = 'none';
+        starForm.reset();
+    };
+
+    closeStarModal.onclick = closeStarModalFunc;
+    cancelStarBtn.onclick = closeStarModalFunc;
+
+    starForm.onsubmit = (e) => {
+        e.preventDefault();
+        const starName = document.getElementById('star-name').value;
+        const starColor = document.getElementById('star-color').value;
+        console.log('New Star:', { starName, starColor });
+        closeStarModalFunc();
+    };
+
     // Close modal logic
     closeModal.onclick = () => {
         dayModal.style.display = 'none';
@@ -328,6 +411,9 @@
     window.onclick = (event) => {
         if (event.target === dayModal) {
             dayModal.style.display = 'none';
+        }
+        if (event.target === starModal) {
+            closeStarModalFunc();
         }
     };
 
