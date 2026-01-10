@@ -65,8 +65,8 @@
         .cell {
             padding: 0.5rem;
             border: 1px solid #eee;
-            text-align: center;
-            min-height: 3rem;
+            text-align: left;
+            min-height: 5rem;
         }
 
         .week-label {
@@ -76,17 +76,20 @@
             align-items: center;
             justify-content: center;
             background-color: #fafafa;
+            text-align: center;
         }
 
         .day-cell {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            flex-direction: row;
+            align-items: baseline;
+            justify-content: flex-start;
+            gap: 0.3rem;
         }
 
         .day-number {
             font-size: 1.1rem;
+            line-height: 1;
         }
 
         .month-name {
@@ -94,6 +97,7 @@
             color: #888;
             text-transform: uppercase;
             font-weight: bold;
+            line-height: 1;
         }
 
         .current-day {
