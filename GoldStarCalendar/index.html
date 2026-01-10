@@ -85,6 +85,11 @@
             align-items: baseline;
             justify-content: flex-start;
             gap: 0.3rem;
+            cursor: pointer;
+        }
+
+        .day-cell:hover {
+            background-color: #f0f0f0;
         }
 
         .day-number {
@@ -127,6 +132,45 @@
         button:hover {
             background-color: #0056b3;
         }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -156,11 +200,25 @@
     </div>
 </div>
 
+<div id="day-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="close-modal">&times;</span>
+        <h2 id="modal-date">Day Details</h2>
+        <div id="modal-body">
+            <!-- Details will be shown here -->
+        </div>
+    </div>
+</div>
+
 <script>
     const yearPicker = document.getElementById('year-picker');
     const thisWeekBtn = document.getElementById('this-week-btn');
     const weeksBody = document.getElementById('weeks-body');
     const calendarContainer = document.getElementById('calendar-container');
+    const dayModal = document.getElementById('day-modal');
+    const closeModal = document.getElementById('close-modal');
+    const modalDate = document.getElementById('modal-date');
+    const modalBody = document.getElementById('modal-body');
 
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -206,6 +264,13 @@
                 dayNumberSpan.textContent = dayNum;
                 
                 dayCell.appendChild(dayNumberSpan);
+
+                const currentDate = new Date(date);
+                dayCell.onclick = () => {
+                    modalDate.textContent = currentDate.toDateString();
+                    modalBody.innerHTML = '';
+                    dayModal.style.display = 'block';
+                };
 
                 // Show month name if it's the 1st of the month or the first day of the week
                 if (dayNum === 1 || d === 0) {
@@ -254,6 +319,17 @@
     });
 
     thisWeekBtn.addEventListener('click', scrollToCurrentWeek);
+
+    // Close modal logic
+    closeModal.onclick = () => {
+        dayModal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target === dayModal) {
+            dayModal.style.display = 'none';
+        }
+    };
 
     // Initial render
     renderCalendar(currentYear);
