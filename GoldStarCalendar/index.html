@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoldStart Calendar</title>
+    <title>GoldStar Calendar</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -248,7 +248,30 @@
         .btn-done {
             padding: 0.3rem 0.6rem;
             font-size: 0.85rem;
+        }
+
+        .star-completed-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .done-status-container {
             margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
+
+        .undo-link {
+            font-size: 0.8rem;
+            color: #888;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: 0.5rem;
+            user-select: none;
+        }
+
+        .undo-link:hover {
+            color: #666;
         }
     </style>
 </head>
@@ -389,6 +412,7 @@
                     modalBody.innerHTML = '';
 
                     const currentStars = JSON.parse(localStorage.getItem('calendar-stars') || '[]');
+
                     if (currentStars.length === 0) {
                         modalBody.innerHTML = '<p style="color: #666;">No stars created yet. Use "+ New Star" to create some!</p>';
                     } else {
@@ -405,23 +429,55 @@
                             name.className = 'star-list-name';
                             name.textContent = star.name;
 
-                            const doneBtn = document.createElement('button');
-                            doneBtn.className = 'btn-done';
-                            doneBtn.textContent = 'I did it!';
-                            doneBtn.onclick = () => {
-                                const currentCompletions = JSON.parse(localStorage.getItem('calendar-star-completions') || '[]');
-                                currentCompletions.push({
-                                    starId: star.id,
-                                    date: currentDate.toDateString()
-                                });
-                                localStorage.setItem('calendar-star-completions', JSON.stringify(currentCompletions));
-                                console.log('Completion recorded:', { starId: star.id, date: currentDate.toDateString() });
-                                renderCalendar(parseInt(yearPicker.value));
-                            };
-
                             starItem.appendChild(icon);
                             starItem.appendChild(name);
-                            starItem.appendChild(doneBtn);
+
+                            const statusContainer = document.createElement('div');
+                            statusContainer.className = 'done-status-container';
+                            starItem.appendChild(statusContainer);
+
+                            const updateStatus = () => {
+                                statusContainer.innerHTML = '';
+                                const completions = JSON.parse(localStorage.getItem('calendar-star-completions') || '[]');
+                                const isDone = completions.some(c => c.starId === star.id && c.date === currentDate.toDateString());
+
+                                if (isDone) {
+                                    const doneIcon = document.createElement('span');
+                                    doneIcon.className = 'star-completed-icon';
+                                    doneIcon.textContent = '★';
+                                    doneIcon.style.color = star.color;
+                                    statusContainer.appendChild(doneIcon);
+
+                                    const undoLink = document.createElement('span');
+                                    undoLink.className = 'undo-link';
+                                    undoLink.textContent = 'Woops!';
+                                    undoLink.onclick = () => {
+                                        let comps = JSON.parse(localStorage.getItem('calendar-star-completions') || '[]');
+                                        comps = comps.filter(c => !(c.starId === star.id && c.date === currentDate.toDateString()));
+                                        localStorage.setItem('calendar-star-completions', JSON.stringify(comps));
+                                        renderCalendar(parseInt(yearPicker.value));
+                                        updateStatus();
+                                    };
+                                    statusContainer.appendChild(undoLink);
+                                } else {
+                                    const doneBtn = document.createElement('button');
+                                    doneBtn.className = 'btn-done';
+                                    doneBtn.textContent = 'I did it!';
+                                    doneBtn.onclick = () => {
+                                        const completions = JSON.parse(localStorage.getItem('calendar-star-completions') || '[]');
+                                        completions.push({
+                                            starId: star.id,
+                                            date: currentDate.toDateString()
+                                        });
+                                        localStorage.setItem('calendar-star-completions', JSON.stringify(completions));
+                                        renderCalendar(parseInt(yearPicker.value));
+                                        updateStatus();
+                                    };
+                                    statusContainer.appendChild(doneBtn);
+                                }
+                            };
+
+                            updateStatus();
                             modalBody.appendChild(starItem);
                         });
                     }
