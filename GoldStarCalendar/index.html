@@ -287,6 +287,7 @@
         <button id="this-week-btn">This Week</button>
         <button id="add-star-btn">+ New Star</button>
     </div>
+    <button id="save-to-device-btn" style="margin-left: auto;">Save to Device</button>
 </header>
 
 <div id="calendar-container">
@@ -341,6 +342,7 @@
     const yearPicker = document.getElementById('year-picker');
     const thisWeekBtn = document.getElementById('this-week-btn');
     const addStarBtn = document.getElementById('add-star-btn');
+    const saveToDeviceBtn = document.getElementById('save-to-device-btn');
     const weeksBody = document.getElementById('weeks-body');
     const calendarContainer = document.getElementById('calendar-container');
     
@@ -553,6 +555,36 @@
     });
 
     thisWeekBtn.addEventListener('click', scrollToCurrentWeek);
+
+    saveToDeviceBtn.addEventListener('click', async () => {
+        try {
+            if (!window.showDirectoryPicker) {
+                alert('Your browser does not support the File System Access API. Please use a modern browser like Chrome or Edge.');
+                return;
+            }
+
+            const dirHandle = await window.showDirectoryPicker();
+            const fileHandle = await dirHandle.getFileHandle('gold-star-calendar-data.json', { create: true });
+            const writable = await fileHandle.createWritable();
+
+            const data = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                data[key] = localStorage.getItem(key);
+            }
+
+            await writable.write(JSON.stringify(data, null, 2));
+            await writable.close();
+            
+            alert('Data successfully saved to gold-star-calendar-data.json');
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                return;
+            }
+            console.error('Error saving to device:', err);
+            alert('Failed to save data: ' + err.message);
+        }
+    });
 
     // Star modal logic
     addStarBtn.onclick = () => {
