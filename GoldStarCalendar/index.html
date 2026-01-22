@@ -631,7 +631,9 @@
                 alert('Your browser does not support the File System Access API. Please use a modern browser like Chrome or Edge.');
                 return;
             }
-            const dirHandle = await window.showDirectoryPicker();
+            const dirHandle = await window.showDirectoryPicker({
+                id: 'gold-star-calendar-save-dir'
+            });
             
             let shouldWrite = true;
             try {
