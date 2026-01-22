@@ -625,22 +625,24 @@
 
     thisWeekBtn.addEventListener('click', scrollToCurrentWeek);
 
-    saveToDeviceBtn.addEventListener('click', async () => {
+    saveToDeviceBtn.onclick = async () => {
         try {
             if (!window.showDirectoryPicker) {
                 alert('Your browser does not support the File System Access API. Please use a modern browser like Chrome or Edge.');
                 return;
             }
-
+            alert('When you pick a directory, the Gold Star Calendar data will be saved to a file named gold-star-calendar-data.json in that directory.');
             const dirHandle = await window.showDirectoryPicker();
             const fileHandle = await dirHandle.getFileHandle('gold-star-calendar-data.json', { create: true });
             const writable = await fileHandle.createWritable();
 
-            const data = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                data[key] = localStorage.getItem(key);
-            }
+            const stars = await getAll('stars');
+            const completions = await getAll('completions');
+
+            const data = {
+                stars: stars,
+                completions: completions
+            };
 
             await writable.write(JSON.stringify(data, null, 2));
             await writable.close();
@@ -653,7 +655,7 @@
             console.error('Error saving to device:', err);
             alert('Failed to save data: ' + err.message);
         }
-    });
+    };
 
     // Star modal logic
     addStarBtn.onclick = () => {
