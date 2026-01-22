@@ -343,7 +343,80 @@
     const addStarBtn = document.getElementById('add-star-btn');
     const weeksBody = document.getElementById('weeks-body');
     const calendarContainer = document.getElementById('calendar-container');
-    
+
+    // IndexedDB Setup
+    const DB_NAME = 'GoldStarCalendarDB';
+    const DB_VERSION = 1;
+    let db;
+
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onerror = (event) => {
+                console.error("Database error: " + event.target.errorCode);
+                reject(event.target.errorCode);
+            };
+
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                resolve(db);
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('stars')) {
+                    db.createObjectStore('stars', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('completions')) {
+                    db.createObjectStore('completions', { autoIncrement: true });
+                }
+            };
+        });
+    }
+
+    function getAll(storeName) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    function addData(storeName, data) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.add(data);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    function deleteCompletion(starId, date) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['completions'], 'readwrite');
+            const store = transaction.objectStore('completions');
+            const request = store.openCursor();
+            request.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    if (cursor.value.starId === starId && cursor.value.date === date) {
+                        cursor.delete();
+                        resolve();
+                    } else {
+                        cursor.continue();
+                    }
+                } else {
+                    resolve(); // Not found is fine
+                }
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
     const dayModal = document.getElementById('day-modal');
     const closeModal = document.getElementById('close-modal');
     const modalDate = document.getElementById('modal-date');
@@ -366,11 +439,11 @@
         yearPicker.appendChild(option);
     }
 
-    function renderCalendar(year) {
+    async function renderCalendar(year) {
         weeksBody.innerHTML = '';
         
-        const stars = JSON.parse(localStorage.getItem('calendar-stars') || '[]');
-        const completions = JSON.parse(localStorage.getItem('calendar-star-completions') || '[]');
+        const stars = await getAll('stars');
+        const completions = await getAll('completions');
         
         // Map stars for quick lookup by ID
         const starMap = {};
@@ -410,11 +483,11 @@
                 dayHeader.appendChild(dayNumberSpan);
 
                 const currentDate = new Date(date);
-                dayCell.onclick = () => {
+                dayCell.onclick = async () => {
                     modalDate.textContent = currentDate.toDateString();
                     modalBody.innerHTML = '';
 
-                    const currentStars = JSON.parse(localStorage.getItem('calendar-stars') || '[]');
+                    const currentStars = await getAll('stars');
 
                     if (currentStars.length === 0) {
                         modalBody.innerHTML = '<p style="color: #666;">No stars created yet. Use "+ New Star" to create some!</p>';
@@ -439,9 +512,9 @@
                             statusContainer.className = 'done-status-container';
                             starItem.appendChild(statusContainer);
 
-                            const updateStatus = () => {
+                            const updateStatus = async () => {
                                 statusContainer.innerHTML = '';
-                                const completions = JSON.parse(localStorage.getItem('calendar-star-completions') || '[]');
+                                const completions = await getAll('completions');
                                 const isDone = completions.some(c => c.starId === star.id && c.date === currentDate.toDateString());
 
                                 if (isDone) {
@@ -454,11 +527,9 @@
                                     const undoLink = document.createElement('span');
                                     undoLink.className = 'undo-link';
                                     undoLink.textContent = 'Woops!';
-                                    undoLink.onclick = () => {
-                                        let comps = JSON.parse(localStorage.getItem('calendar-star-completions') || '[]');
-                                        comps = comps.filter(c => !(c.starId === star.id && c.date === currentDate.toDateString()));
-                                        localStorage.setItem('calendar-star-completions', JSON.stringify(comps));
-                                        renderCalendar(parseInt(yearPicker.value));
+                                    undoLink.onclick = async () => {
+                                        await deleteCompletion(star.id, currentDate.toDateString());
+                                        await renderCalendar(parseInt(yearPicker.value));
                                         updateStatus();
                                     };
                                     statusContainer.appendChild(undoLink);
@@ -466,14 +537,12 @@
                                     const doneBtn = document.createElement('button');
                                     doneBtn.className = 'btn-done';
                                     doneBtn.textContent = 'I did it!';
-                                    doneBtn.onclick = () => {
-                                        const completions = JSON.parse(localStorage.getItem('calendar-star-completions') || '[]');
-                                        completions.push({
+                                    doneBtn.onclick = async () => {
+                                        await addData('completions', {
                                             starId: star.id,
                                             date: currentDate.toDateString()
                                         });
-                                        localStorage.setItem('calendar-star-completions', JSON.stringify(completions));
-                                        renderCalendar(parseInt(yearPicker.value));
+                                        await renderCalendar(parseInt(yearPicker.value));
                                         updateStatus();
                                     };
                                     statusContainer.appendChild(doneBtn);
@@ -535,11 +604,11 @@
         }
     }
 
-    function scrollToCurrentWeek() {
+    async function scrollToCurrentWeek() {
         const currentYearSelected = parseInt(yearPicker.value);
         if (currentYearSelected !== currentYear) {
             yearPicker.value = currentYear;
-            renderCalendar(currentYear);
+            await renderCalendar(currentYear);
         }
         
         const currentWeekRow = document.getElementById('current-week-row');
@@ -548,8 +617,8 @@
         }
     }
 
-    yearPicker.addEventListener('change', (e) => {
-        renderCalendar(parseInt(e.target.value));
+    yearPicker.addEventListener('change', async (e) => {
+        await renderCalendar(parseInt(e.target.value));
     });
 
     thisWeekBtn.addEventListener('click', scrollToCurrentWeek);
@@ -567,7 +636,7 @@
     closeStarModal.onclick = closeStarModalFunc;
     cancelStarBtn.onclick = closeStarModalFunc;
 
-    starForm.onsubmit = (e) => {
+    starForm.onsubmit = async (e) => {
         e.preventDefault();
         const starName = document.getElementById('star-name').value;
         const starColor = document.getElementById('star-color').value;
@@ -578,11 +647,10 @@
             color: starColor
         };
 
-        const stars = JSON.parse(localStorage.getItem('calendar-stars') || '[]');
-        stars.push(newStar);
-        localStorage.setItem('calendar-stars', JSON.stringify(stars));
+        await addData('stars', newStar);
 
         console.log('New Star saved:', newStar);
+        await renderCalendar(parseInt(yearPicker.value));
         closeStarModalFunc();
     };
 
@@ -601,10 +669,12 @@
     };
 
     // Initial render
-    renderCalendar(currentYear);
-    
-    // Scroll to current week on load
-    setTimeout(scrollToCurrentWeek, 100);
+    (async () => {
+        await initDB();
+        await renderCalendar(currentYear);
+        // Scroll to current week on load
+        setTimeout(scrollToCurrentWeek, 100);
+    })();
 
     // Register service worker
     if ('serviceWorker' in navigator) {
