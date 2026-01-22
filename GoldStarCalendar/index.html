@@ -287,7 +287,8 @@
         <button id="this-week-btn">This Week</button>
         <button id="add-star-btn">+ New Star</button>
     </div>
-    <button id="save-to-device-btn" style="margin-left: auto;">Save to Device</button>
+    <button id="load-from-device-btn" style="margin-left: auto;">Load from Device</button>
+    <button id="save-to-device-btn">Save to Device</button>
 </header>
 
 <div id="calendar-container">
@@ -342,6 +343,7 @@
     const yearPicker = document.getElementById('year-picker');
     const thisWeekBtn = document.getElementById('this-week-btn');
     const addStarBtn = document.getElementById('add-star-btn');
+    const loadFromDeviceBtn = document.getElementById('load-from-device-btn');
     const saveToDeviceBtn = document.getElementById('save-to-device-btn');
     const weeksBody = document.getElementById('weeks-body');
     const calendarContainer = document.getElementById('calendar-container');
@@ -393,6 +395,16 @@
             const store = transaction.objectStore(storeName);
             const request = store.add(data);
             request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    function clearStore(storeName) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.clear();
+            request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error);
         });
     }
@@ -624,6 +636,64 @@
     });
 
     thisWeekBtn.addEventListener('click', scrollToCurrentWeek);
+
+    loadFromDeviceBtn.onclick = async () => {
+        try {
+            if (!window.showOpenFilePicker) {
+                alert('Your browser does not support the File System Access API. Please use a modern browser like Chrome or Edge.');
+                return;
+            }
+
+            const [fileHandle] = await window.showOpenFilePicker({
+                types: [
+                    {
+                        description: 'JSON Files',
+                        accept: {
+                            'application/json': ['.json'],
+                        },
+                    },
+                ],
+                multiple: false,
+                id: 'gold-star-calendar-save-dir' // Use the same id as the Save to Device button for simplicity
+            });
+
+            const file = await fileHandle.getFile();
+            const contents = await file.text();
+            const data = JSON.parse(contents);
+
+            if (!data.stars || !data.completions) {
+                alert('Invalid data format. The file must contain "stars" and "completions".');
+                return;
+            }
+
+            const confirmClear = confirm('This will clear ALL current data from your calendar and replace it with the data from the selected file. Are you sure you want to proceed?');
+            
+            if (!confirmClear) {
+                return;
+            }
+
+            // Clear existing data
+            await clearStore('stars');
+            await clearStore('completions');
+
+            // Load new data
+            for (const star of data.stars) {
+                await addData('stars', star);
+            }
+            for (const completion of data.completions) {
+                await addData('completions', completion);
+            }
+
+            await renderCalendar(parseInt(yearPicker.value));
+            alert('Data successfully loaded from device.');
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                return;
+            }
+            console.error('Error loading from device:', err);
+            alert('Failed to load data: ' + err.message);
+        }
+    };
 
     saveToDeviceBtn.onclick = async () => {
         try {
