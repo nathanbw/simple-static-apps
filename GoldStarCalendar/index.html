@@ -631,8 +631,24 @@
                 alert('Your browser does not support the File System Access API. Please use a modern browser like Chrome or Edge.');
                 return;
             }
-            alert('When you pick a directory, the Gold Star Calendar data will be saved to a file named gold-star-calendar-data.json in that directory.');
             const dirHandle = await window.showDirectoryPicker();
+            
+            let shouldWrite = true;
+            try {
+                await dirHandle.getFileHandle('gold-star-calendar-data.json', { create: false });
+                // If we reach here, the file exists
+                shouldWrite = confirm('gold-star-calendar-data.json already exists in this directory. Do you want to overwrite it?');
+            } catch (err) {
+                // If file doesn't exist, getFileHandle throws NotFoundError
+                if (err.name !== 'NotFoundError') {
+                    throw err;
+                }
+            }
+
+            if (!shouldWrite) {
+                return;
+            }
+
             const fileHandle = await dirHandle.getFileHandle('gold-star-calendar-data.json', { create: true });
             const writable = await fileHandle.createWritable();
 
