@@ -453,7 +453,10 @@
         yearPicker.appendChild(option);
     }
 
-    async function renderCalendar(year) {
+    async function renderCalendar(year, options = {}) {
+        const { preserveScroll = false } = options;
+        const previousScrollTop = preserveScroll ? calendarContainer.scrollTop : 0;
+
         weeksBody.innerHTML = '';
         
         const stars = await getAll('stars');
@@ -543,7 +546,7 @@
                                     undoLink.textContent = 'Woops!';
                                     undoLink.onclick = async () => {
                                         await deleteCompletion(star.id, currentDate.toDateString());
-                                        await renderCalendar(parseInt(yearPicker.value));
+                                        await renderCalendar(parseInt(yearPicker.value), { preserveScroll: true });
                                         updateStatus();
                                     };
                                     statusContainer.appendChild(undoLink);
@@ -556,7 +559,7 @@
                                             starId: star.id,
                                             date: currentDate.toDateString()
                                         });
-                                        await renderCalendar(parseInt(yearPicker.value));
+                                        await renderCalendar(parseInt(yearPicker.value), { preserveScroll: true });
                                         updateStatus();
                                     };
                                     statusContainer.appendChild(doneBtn);
@@ -615,6 +618,10 @@
             }
 
             weeksBody.appendChild(row);
+        }
+
+        if (preserveScroll) {
+            calendarContainer.scrollTop = previousScrollTop;
         }
     }
 
@@ -772,7 +779,7 @@
         await addData('stars', newStar);
 
         console.log('New Star saved:', newStar);
-        await renderCalendar(parseInt(yearPicker.value));
+        await renderCalendar(parseInt(yearPicker.value), { preserveScroll: true });
         closeStarModalFunc();
     };
 
