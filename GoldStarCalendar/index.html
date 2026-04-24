@@ -211,6 +211,47 @@
             border-radius: 4px;
         }
 
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .color-picker-row input[type="color"] {
+            width: 4.5rem;
+            min-width: 4.5rem;
+            height: 3rem;
+            padding: 0.25rem;
+            border: 1px solid #d2d6dc;
+            border-radius: 0.85rem;
+            background: #fff;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(15, 23, 42, 0.08);
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .color-picker-row input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-picker-row input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 0.6rem;
+        }
+
+        .color-picker-row input[type="color"]::-moz-color-swatch {
+            border: none;
+            border-radius: 0.6rem;
+        }
+
+        .color-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #4b5563;
+            letter-spacing: 0.04em;
+        }
+
         .form-actions {
             display: flex;
             justify-content: flex-end;
@@ -329,7 +370,10 @@
             </div>
             <div class="form-group">
                 <label for="star-color">Star Color:</label>
-                <input type="color" id="star-color" value="#ffcc00">
+                <div class="color-picker-row">
+                    <input type="color" id="star-color" value="#ffcc00">
+                    <span class="color-value" id="star-color-value">#FFCC00</span>
+                </div>
             </div>
             <div class="form-actions">
                 <button type="button" class="btn-secondary" id="cancel-star">Cancel</button>
@@ -440,6 +484,8 @@
     const closeStarModal = document.getElementById('close-star-modal');
     const cancelStarBtn = document.getElementById('cancel-star');
     const starForm = document.getElementById('star-form');
+    const starColorInput = document.getElementById('star-color');
+    const starColorValue = document.getElementById('star-color-value');
 
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -753,13 +799,22 @@
     };
 
     // Star modal logic
+    const syncStarColorValue = () => {
+        starColorValue.textContent = starColorInput.value.toUpperCase();
+    };
+
+    syncStarColorValue();
+    starColorInput.addEventListener('input', syncStarColorValue);
+
     addStarBtn.onclick = () => {
         starModal.style.display = 'block';
+        syncStarColorValue();
     };
 
     const closeStarModalFunc = () => {
         starModal.style.display = 'none';
         starForm.reset();
+        syncStarColorValue();
     };
 
     closeStarModal.onclick = closeStarModalFunc;
@@ -768,7 +823,7 @@
     starForm.onsubmit = async (e) => {
         e.preventDefault();
         const starName = document.getElementById('star-name').value;
-        const starColor = document.getElementById('star-color').value;
+        const starColor = starColorInput.value;
         
         const newStar = {
             id: Date.now(),
